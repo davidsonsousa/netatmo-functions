@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -7,7 +8,7 @@ using Weather.Models;
 
 namespace Weather.Core
 {
-    public class RestClient
+    public class RestClient : IRestClient
     {
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger _logger;
@@ -18,11 +19,12 @@ namespace Weather.Core
             _logger = logger;
         }
 
-        public async Task<NetatmoResponse> GetCo2Information(string macAddress, string timeFrame, string dateBegin, string token)
+        public async Task<NetatmoResponse> GetStationInformation(string macAddress, string token, string type)
         {
             try
             {
-                var endpoint = $"https://api.netatmo.com/api/getmeasure?device_id={macAddress}&scale={timeFrame}&date_begin={dateBegin}&optimize=false&real_time=false&type=co2";
+                var dateBegin = DateTimeOffset.Now.Add(-new TimeSpan(0, 30, 0)).ToUnixTimeSeconds().ToString();
+                var endpoint = $"https://api.netatmo.com/api/getmeasure?device_id={macAddress}&scale=1hour&date_begin={dateBegin}&optimize=false&real_time=false&type={type}";
                 var response = await CallRestApi(endpoint, token);
 
                 if (response.IsSuccessStatusCode)
