@@ -5,6 +5,7 @@ namespace Weather.Core
 {
     public interface IRestClient
     {
-        Task<NetatmoResponse> GetStationInformation(string macAddress, string token, string type);
+        Task<AuthenticationResponse> Authenticate();
+        Task<StationResponse> GetStationInformation(string deviceId, string moduleId, string token, string type);
     }
 }
