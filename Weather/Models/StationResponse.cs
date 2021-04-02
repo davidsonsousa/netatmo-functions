@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Weather.Models
 {
-    public class NetatmoResponse
+    public class StationResponse
     {
         [JsonProperty("body")]
         public Dictionary<string, List<int>> Body { get; set; }
@@ -16,5 +16,16 @@ namespace Weather.Models
 
         [JsonProperty("time_server")]
         public long TimeServer { get; set; }
+
+        [JsonProperty("error")]
+        public Error Error { get; set; }
+    }
+    public class Error
+    {
+        [JsonProperty("code")]
+        public long Code { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
     }
 }

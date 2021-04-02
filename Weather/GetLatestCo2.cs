@@ -8,16 +8,18 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Weather.Core;
+using Weather.Exceptions;
+using Weather.Models;
 
 namespace Weather
 {
     public class GetLatestCo2
     {
-        private readonly IHttpClientFactory _clientFactory;
+        private readonly IRestClient _restClient;
 
-        public GetLatestCo2(IHttpClientFactory clientFactory)
+        public GetLatestCo2(IRestClient restClient)
         {
-            _clientFactory = clientFactory;
+            _restClient = restClient;
         }
 
         [FunctionName("GetLatestCo2")]
@@ -25,17 +27,32 @@ namespace Weather
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             ILogger log)
         {
-            var token = "5ec2c8a6d9385d10f53977f5|44f603a71dc57c23d3a7aea654befb24";
-            var macAddress = "70:ee:50:64:1e:26";
-            var timeFrame = "1hour";
-            var dateBegin = DateTimeOffset.Now.Add(-new TimeSpan(0, 30, 0)).ToUnixTimeSeconds().ToString();
+            string deviceId = req.Query["device"];
+            string moduleId = req.Query["module"];
 
-            var restClient = new RestClient(_clientFactory, log);
-            var response = await restClient.GetCo2Information(macAddress,timeFrame, dateBegin, token);
+            StationResponse response;
 
-            if (response == null)
+            try
             {
-                return new NotFoundObjectResult("Something went wrong");
+                var authResponse = await _restClient.Authenticate();
+                Guard.ForAuthenticationFailure(authResponse);
+
+                response = await _restClient.GetStationInformation(deviceId, moduleId, authResponse.AccessToken, Constants.CO2);
+            }
+            catch (HttpStatusException ex)
+            {
+                log.LogError(ex, $"Request to Netatmo API failed ({ex.StatusCode})");
+                return new StatusCodeResult(ex.StatusCode);
+            }
+            catch (HttpRequestException ex)
+            {
+                log.LogError(ex, "Request to Netatmo API failed");
+                return new BadRequestObjectResult(ex);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error when loading station information");
+                return new BadRequestObjectResult("Error when loading station information");
             }
 
             return new OkObjectResult(response.Body.Values.LastOrDefault());
